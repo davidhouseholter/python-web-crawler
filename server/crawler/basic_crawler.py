@@ -5,6 +5,28 @@ from requests.adapters import HTTPAdapter, Retry
 from bs4 import BeautifulSoup
 from .core import ApplicationError
 
+
+import scrapy
+from scrapy_selenium import SeleniumRequest
+  
+# for firefox
+from shutil import which
+ 
+SELENIUM_DRIVER_NAME = 'firefox'
+SELENIUM_DRIVER_EXECUTABLE_PATH = which('geckodriver')
+SELENIUM_DRIVER_ARGUMENTS=['-headless'] 
+ 
+# for chrome driver
+from shutil import which
+ 
+SELENIUM_DRIVER_NAME = 'chrome'
+SELENIUM_DRIVER_EXECUTABLE_PATH = which('chromedriver')
+SELENIUM_DRIVER_ARGUMENTS=['--headless'] 
+ 
+DOWNLOADER_MIDDLEWARES = {
+     'scrapy_selenium.SeleniumMiddleware': 800
+     }
+
 class BasicCrawler(object):
     """A web crawler based on a seed url and the depth"""
 
@@ -67,36 +89,71 @@ class BasicCrawler(object):
         elif url.startswith("/"):
             return seed + url
 
-
+    def start_requests(self):
+        yield SeleniumRequest(
+            url = self.seed,
+            wait_time = 3,
+            screenshot = True,
+            callback = self.parse,
+            dont_filter = True
+        )
+  
+    def parse(self, response):
+        print(response)
+        # courses make list of all items that came in this xpath
+        # this xpath is of cards containing courses details
+        courses = response.xpath('//*[@id ="active-courses-content"]/div/div/div')
+  
+        # course is each course in the courses list
+        for course in courses:
+            # xpath of course name is added in the course path
+            # text() will scrape text from h4 tag that contains course name
+            course_name = course.xpath('.//a/div[2]/div/div[2]/h4/text()').get()
+  
+            # course_name is a string containing \n and extra spaces
+            # these \n and extra spaces are removed
+  
+            course_name = course_name.split('\n')[1]
+            course_name = course_name.strip()
+  
+              
+            yield {
+                'course Name':course_name
+            }
     def crawl( self, seed, depth ):
         print("Crawling:  {seed} at {depth}".format(seed=seed, depth=depth))
-        session = requests.Session()
-        retry = Retry(connect=3, backoff_factor=0.5)
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
+        # session = requests.Session()
+        # retry = Retry(connect=3, backoff_factor=0.5)
+        # adapter = HTTPAdapter(max_retries=retry)
+        # session.mount('http://', adapter)
+        # session.mount('https://', adapter)
         
-        response = session.get(seed, timeout=20)
+        # response = session.get(seed, timeout=20)
         # response = requests.get(seed)
-        soup = BeautifulSoup(response.content, "html.parser")
+        
+        # with open('content.txt', 'w') as f:
+        #     f.write(response.content)
+        # soup = BeautifulSoup(response.content, "html.parser")
+        # with open('soup.txt', 'w') as f:
+        #     f.write(soup)
+        # print(soup)
+        # imgs = []
+        # for img in soup.find_all('p', src=True):
+        #     img_src = self.format_url(seed, img)
 
-        imgs = []
-        for img in soup.find_all('img', src=True):
-            img_src = self.format_url(seed, img['src'])
+        #     if img_src and img_src not in imgs:
+        #         imgs.append(img_src)
 
-            if img_src and img_src not in imgs:
-                imgs.append(img_src)
+        # result = {
+        #     'link': seed,
+        #     'images': imgs
+        # }
+        # self.crawl_map["contents"].append(result)
 
-        result = {
-            'link': seed,
-            'images': imgs
-        }
-        self.crawl_map["contents"].append(result)
+        # if depth:
+        #     for anchor in soup.find_all('a', href=True):
+        #         sub_link = self.format_url(seed, anchor['href'])
 
-        if depth:
-            for anchor in soup.find_all('a', href=True):
-                sub_link = self.format_url(seed, anchor['href'])
-
-                if sub_link and sub_link not in self.links_list and len(self.links_list) < 4:
-                    self.links_list.append(sub_link)
-                    self.crawl(sub_link, depth - 1)
+        #         if sub_link and sub_link not in self.links_list and len(self.links_list) < 4:
+        #             self.links_list.append(sub_link)
+        #             self.crawl(sub_link, depth - 1)

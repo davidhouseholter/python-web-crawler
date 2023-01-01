@@ -1,36 +1,40 @@
 from flask import Flask, send_from_directory, request
 import random
-from server.crawler.basic_crawler import BasicCrawler
+import unittest
+import redis
+from flask.cli import FlaskGroup
+from rq import Connection, Worker
+from server import create_app
 
-app = Flask(__name__)
+# from server.crawler.advanced_crawler import AdvancedCrawler
+# from server.crawler.basic_crawler import BasicCrawler
 
-# Path for our main Svelte page
-@app.route("/")
-def base():
-    return send_from_directory('client/public', 'index.html')
+# app = Flask(__name__)
+app = create_app()
+cli = FlaskGroup(create_app=create_app)
 
-# Path for all the static files (compiled JS/CSS, etc.)
-@app.route("/<path:path>")
-def home(path):
-    return send_from_directory('client/public', path)
+@cli.command()
+def test():
+    """Runs the unit tests without test coverage."""
+    tests = unittest.TestLoader().discover("project/tests", pattern="test*.py")
+    result = unittest.TextTestRunner(verbosity=2).run(tests)
+    if result.wasSuccessful():
+        return 0
+    return 1
 
 
-@app.route("/rand")
-def hello():
-    return str(random.randint(0, 100))
+@cli.command("run_worker")
+def run_worker():
+    redis_url = app.config["REDIS_URL"]
+    redis_connection = redis.from_url(redis_url)
+    with Connection(redis_connection):
+        worker = Worker(app.config["QUEUES"])
+        worker.work()
 
-@app.route('/crawl/', methods = ['POST'])
-def execute():
-    content = request.json
-    print(content['seed'])
-    seed = content['seed']
-    depth = content['depth']
 
-    print(seed)
-
-    print (depth)
-
-    return BasicCrawler(seed, depth).start_crawl()
+# if __name__ == "__main__":
+#     app.run(debug=True)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    print('test')
+    cli()

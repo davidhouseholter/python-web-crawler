@@ -1,0 +1,2 @@
+user www_user on ~* +@all >www-user-redis
+user default on nopass ~* &* +@all
