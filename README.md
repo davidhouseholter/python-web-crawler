@@ -1,6 +1,6 @@
-# Svelte.js + Flask Python web Spider
+# Svelte.js + Flask Python Background Jobs and Web Spider
 
-A super simple example of using Flask to serve a Svelte app and use it as a backend server. It run and rq, scrapy, selenium.
+A super simple example of using Flask to serve a Svelte app and use it as a backend server. It run and rq, scrapy, selenium to perform queueing jobs and processing them in the background with workers.
 
 Stack:
 
