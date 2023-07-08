@@ -10,6 +10,7 @@ Stack:
 - Docker
 - Scrapy
 - Selenium
+- Redis
 - [rq](https://python-rq.org/)
 
 # 
